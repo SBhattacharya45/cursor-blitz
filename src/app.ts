@@ -1,3 +1,4 @@
+import { Key } from "readline";
 
 const readline = require('readline');
 const { program } = require('commander');
@@ -7,31 +8,30 @@ const enData = require('./words/english.js').data;
 program
     .option('-c, --count <num>', 'number of words');
 
-const enRegex = /^[a-zA-Z]+$/;
 program.parse();
 
 const options = program.opts();
 readKeys(options.count ? options.count : null);
 
-async function readKeys(count = null) {
-    let sampleWords = [];
-    let wordCount = (count ? parseInt(count) : 10);
+async function readKeys(count: string = null) {
+    let sampleWords: string[] = [];
+    let wordCount: number = (count ? parseInt(count) : 10);
     // let wordCount = 3;
-    let userInp = [];
-    let startTime = null;
+    let userInp: string[] = [];
+    let startTime: number = null;
 
-    let curWordIndex = 0;
-    let backLimit = 0;
+    let curWordIndex: number = 0;
+    let backLimit: number = 0;
 
-    for (let i = 0; i < wordCount; i++) {
+    for (let i: number = 0; i < wordCount; i++) {
         sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
     }
     // sampleWords = ['apple', 'ball', 'cat'];
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
-    process.stdin.on('keypress', async (str, key) => {
+    process.stdin.on('keypress', async (str: string, key: Key) => {
         if (startTime === null)
-            startTime = new Date();
+            startTime = new Date().getTime();
         if (key.ctrl && key.name === 'c') {
             process.exit();
         } else {
@@ -63,9 +63,9 @@ async function readKeys(count = null) {
                 userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex] + str : str);
             }
 
-            let resString = "";
-            let cursorSet = false;
-            for (let i = 0; i < sampleWords.length; i++) {
+            let resString: string = "";
+            let cursorSet: boolean = false;
+            for (let i: number = 0; i < sampleWords.length; i++) {
                 if (i > userInp.length - 1) {
                     if (!cursorSet) {
                         cursorSet = true;
@@ -90,7 +90,7 @@ async function readKeys(count = null) {
                             resString += "|";
                         }
                     } else {
-                        for (let j = 0; j < sampleWords[i].length; j++) {
+                        for (let j: number = 0; j < sampleWords[i].length; j++) {
                             if (j < userInp[i].length) {
                                 if (sampleWords[i][j] === userInp[i][j]) {
                                     resString += "\x1b[32m" + sampleWords[i][j] + "\x1b[0m";
@@ -120,26 +120,26 @@ async function readKeys(count = null) {
                 console.clear();
                 console.log('grats you passed');
 
-                const timeDiff = (new Date().getTime() - startTime) / 1000;
+                const timeDiff: number = (new Date().getTime() - startTime) / 1000;
                 console.log(`Time: ${(Math.round(timeDiff * 100) / 100)} seconds`);
                 console.log(`Speed: ${Math.floor((wordCount / timeDiff) * 60)} WPM`);
                 process.exit();
             } else {
                 console.clear();
-                const d = await figlet('Test');
+                const d: string = await figlet('Test');
                 console.log(d);
                 console.log(resString);
             }
         }
     });
-    let resString = "|";
-    for (let i = 0; i < sampleWords.length; i++) {
+    let resString: string = "|";
+    for (let i: number = 0; i < sampleWords.length; i++) {
         resString = resString + sampleWords[i];
         if (i < sampleWords.length - 1)
             resString = resString + " ";
     }
     console.clear();
-    const d = await figlet('Test');
+    const d: string = await figlet('Test');
     console.log(d);
     console.log(resString);
 }
