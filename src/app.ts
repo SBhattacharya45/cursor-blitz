@@ -3,7 +3,7 @@ import { Key } from "readline";
 const readline = require('readline');
 const { program } = require('commander');
 const figlet = require("figlet");
-const enData = require('./words/english.js').data;
+const enData: string[] = require('./words/english.ts').data;
 
 program
     .option('-c, --count <num>', 'number of words');

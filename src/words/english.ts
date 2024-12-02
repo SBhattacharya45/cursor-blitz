@@ -1,4 +1,4 @@
-exports.data = [
+const engWords: string[] = [
     "A", "a", "About", "about", "Above", "above", "After", "after", "Again", "again",
     "Against", "against", "All", "all", "Am", "am", "An", "an", "And", "and",
     "Any", "any", "Are", "are", "As", "as", "At", "at", "Be", "be", "Because", "because",
@@ -91,3 +91,5 @@ exports.data = [
     "Tactful", "tactful", "Thoughtful", "thoughtful", "Thorough", "thorough", "Tolerant", "tolerant",
     "Unbiased", "unbiased", "Vigilant", "vigilant", "Witty", "witty", "Yearning", "yearning", "Zealful", "zealful"
 ];
+
+exports.data = engWords;
