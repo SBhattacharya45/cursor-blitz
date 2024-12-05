@@ -1,4 +1,4 @@
-const engWords: string[] = [
+const engWords = [
     "A", "a", "About", "about", "Above", "above", "After", "after", "Again", "again",
     "Against", "against", "All", "all", "Am", "am", "An", "an", "And", "and",
     "Any", "any", "Are", "are", "As", "as", "At", "at", "Be", "be", "Because", "because",

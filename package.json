@@ -1,14 +1,17 @@
 {
-  "name": "typing-cli",
+  "name": "cursor-blitz",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./dist/app.js",
     "tsc": "tsc",
     "postinstall": "npm run tsc",
     "dev": "ts-node-dev — respawn — pretty — transpile-only app.ts"
+  },
+  "bin": {
+    "blitz": "./dist/app.js"
   },
   "keywords": [],
   "author": "",
