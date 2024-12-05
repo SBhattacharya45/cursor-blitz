@@ -13,8 +13,9 @@ const ansiMap = {
     gry: '\x1b[2m',
     nil: '\x1b[0m'
 }
+const boxWidth = 80;
 
-interface letterArr {
+interface charArr {
     chr: string,
     code: string
 }
@@ -83,7 +84,7 @@ async function readKeys(count: string = null) {
             }
 
             let resString: string = "";
-            let resArr: letterArr[][] = [[]]; 
+            let resArr: charArr[][] = [[]]; 
             let wIndex = 0;
         
             let cursorSet: boolean = false;
@@ -91,7 +92,6 @@ async function readKeys(count: string = null) {
                 if (i > userInp.length - 1) {
                     if (!cursorSet) {
                         cursorSet = true;
-                        resString += "|";
                         resArr[wIndex].push({chr: "|", code: 'nil'});
                     }
                     resString = resString + sampleWords[i];
@@ -103,43 +103,34 @@ async function readKeys(count: string = null) {
                         for (let j = 0; j < userInp[i].length; j++) {
                             if (j < sampleWords[i].length) {
                                 if (sampleWords[i][j] === userInp[i][j]) {
-                                    resString += "\x1b[32m" + userInp[i][j] + "\x1b[0m";
                                     resArr[wIndex].push({chr: userInp[i][j], code: 'grn'});
                                 } else {
-                                    resString += "\x1b[31m" + sampleWords[i][j] + "\x1b[0m";
                                     resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
                                 }
                             } else {
-                                resString += "\x1b[35m" + userInp[i][j] + "\x1b[0m";
                                 resArr[wIndex].push({chr: userInp[i][j], code: 'mgn'});
                             }
                         }
                         if (!cursorSet && i === userInp.length - 1 && i === curWordIndex) {
                             cursorSet = true;
-                            resString += "|";
                             resArr[wIndex].push({chr: "|", code: 'nil'});
                         }
                     } else {
                         for (let j: number = 0; j < sampleWords[i].length; j++) {
                             if (j < userInp[i].length) {
                                 if (sampleWords[i][j] === userInp[i][j]) {
-                                    resString += "\x1b[32m" + sampleWords[i][j] + "\x1b[0m";
                                     resArr[wIndex].push({chr: sampleWords[i][j], code: 'grn'});
                                 } else {
-                                    resString += "\x1b[31m" + sampleWords[i][j] + "\x1b[0m";
                                     resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
                                 }
                             } else {
                                 if (!cursorSet && i === curWordIndex) {
                                     cursorSet = true;
-                                    resString += "|";
                                     resArr[wIndex].push({chr: "|", code: 'nil'});
                                 }
                                 if (i < curWordIndex) {
-                                    resString += "\x1b[2m" + sampleWords[i][j] + "\x1b[0m";
                                     resArr[wIndex].push({chr: sampleWords[i][j], code: 'gry'});
                                 } else {
-                                    resString += sampleWords[i][j];
                                     resArr[wIndex].push({chr: sampleWords[i][j], code: 'nil'});
                                 }
                             }
@@ -148,26 +139,20 @@ async function readKeys(count: string = null) {
                 }
 
                 if (i < sampleWords.length - 1) {
-                    resString = resString + " ";
                     resArr.push([]);
                     wIndex++;
                 }
             }
+            console.clear();
+            const d: string = await figlet('Cursor Blitz');
+            console.log(d);
+            const formattedArr: string[] = formatCharArr(resArr);
+            logInBox(formattedArr);
 
             if (userInp.length === sampleWords.length && sampleWords[wordCount - 1] === userInp[wordCount - 1]) {
-                console.clear();
-                console.log('grats you passed');
-
-                const timeDiff: number = (new Date().getTime() - startTime) / 1000;
-                console.log(`Time: ${(Math.round(timeDiff * 100) / 100)} seconds`);
-                console.log(`Speed: ${Math.floor((wordCount / timeDiff) * 60)} WPM`);
+                const endTime: number = new Date().getTime();
+                printEndScreen(startTime, endTime, wordCount);
                 process.exit();
-            } else {
-                console.clear();
-                const d: string = await figlet('Cursor Blitz');
-                console.log(d);
-                console.log(resString);
-                drawBoxFromArray(resArr);
             }
         }
     });
@@ -183,65 +168,51 @@ async function readKeys(count: string = null) {
     console.log(resString);
 }
 
-function drawBox(text: string, width: number = 80) {
-    // const boxTop: string = "╭" + "─".repeat(width-2) + "╮";
-    // const boxBottom: string = "╰" + "─".repeat(width-2) + "╯";
-    // let boxContent: string = "";
-    // const reqdTxt: string = text.replace(ansiRegex, '');
+function printEndScreen(startTime: number, endTime: number, wordCount: number) {
+    let result: string[] = [];
+    const timeDiff: number = (endTime - startTime) / 1000;
 
-    // const lineLength = (width - 4);
+    result.push('Congrats, you\'ve completed the blitz');
+    result.push(`Time: ${(Math.round(timeDiff * 100) / 100)} seconds`);
+    result.push(`Speed: ${Math.floor((wordCount / timeDiff) * 60)} WPM`);
 
-    // if(reqdTxt.length > lineLength) {
-    //     const lineCount = Math.ceil(reqdTxt.length % lineLength);
-    //     for(let i: number = 0; i < lineCount; i++) {
-    //         console.log("hi");
-    //     }
-    // } else {
-    //     boxContent = '';
-    // }
-
-    //  return boxContent;
+    logInBox(result);
 }
 
-function drawBoxFromArray(textArr: letterArr[][], width: number = 80) {
-    const boxTop: string = "╭" + "─".repeat(width-2) + "╮";
-    const boxBottom: string = "╰" + "─".repeat(width-2) + "╯";
-
-    const lineLength = (width - 4);
+function formatCharArr(textArr: charArr[][]) {
+    const lineLength = (boxWidth - 4);
 
     let resString: string[] = [""];
     let resIndex: number = 0;
 
-    let letterCount = 0;
+    let charCount = 0;
     for(const t of textArr) {
-        if(letterCount + t.length + 1 > lineLength) {
+        if(charCount + t.length + 1 > lineLength) {
             resIndex++;
             resString[resIndex] = "";
-            letterCount = 0;
+            charCount = 0;
         }
 
         if(resString[resIndex] !== ""){
             resString[resIndex] += " ";
-            letterCount++;
+            charCount++;
         }
         for(const k of t) {
             resString[resIndex] += ansiMap[k.code] + k.chr + ansiMap['nil'];
-            letterCount++;
+            charCount++;
         }
     }
+
+    return resString;
+}
+
+function logInBox(a: string[]) {
+    const boxTop: string = "╭" + "─".repeat(boxWidth-2) + "╮";
+    const boxBottom: string = "╰" + "─".repeat(boxWidth-2) + "╯";
+
     console.log(boxTop);
-    for(const r of resString) {
-        // let k = r;
-        // k.replace(ansiRegex, "");
-        console.log("│ " + r + " ".repeat(width - 4 - r.replace(ansiRegex, "").length) + " │");
-        // console.log(r.replace(ansiRegex, "").length, r);
+    for(const r of a) {
+        console.log("│ " + r + " ".repeat(boxWidth - 4 - r.replace(ansiRegex, "").length) + " │");
     }
     console.log(boxBottom);
-
-    // for(const [index, b] of boxContent.entries()) {
-    //     if(index === cursorLine)
-    //         console.log("| "+b+" |");
-    //     else
-    //         console.log("| "+b+"  |");
-    // }
 }
