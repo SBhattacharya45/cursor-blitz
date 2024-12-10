@@ -2,7 +2,7 @@
 import { Key } from "readline";
 
 const readline = require('readline');
-const { program } = require('commander');
+const { program, Option } = require('commander');
 const figlet = require("figlet");
 const enData: string[] = require('./words/english.js').data;
 
@@ -21,23 +21,29 @@ interface charArr {
     code: string
 }
 
+program.name('blitz')
 program
-    .option('-m, --mode <flag>', 'mode')
-    .option('-c, --count <num>', 'number of words')
-    .option('-t, --time <num>', 'time in seconds');
+    .addOption(new Option('-m, --mode <flag>', 'mode').choices(['count', 'time']).makeOptionMandatory())
+    .addOption(new Option('-c, --count <num>', 'number of words for count mode').default('10', '10 words'))
+    .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'));
 
 program.parse();
 
 const options = program.opts();
-if(options.mode) {
-    if(options.mode === "count") {
-        countMode(options.count ? parseInt(options.count) : null);
-    } else if(options.mode === "time"){
-        timeMode(options.time ? parseInt(options.time) : 30);
+
+startBlitz(options);
+
+function startBlitz(options) {
+    try {
+        if(options.mode === "count") {
+            countMode(options.count ? parseInt(options.count) : null);
+        } else if(options.mode === "time"){
+            timeMode(options.time ? parseInt(options.time) : 30);
+        }
+    } catch(err) {
+        console.error(err);
     }
-} else {
-    // todo: add proper error msgs
-    console.error('Mode is required');
+
 }
 
 // console.log(drawBox("Sample text"));
@@ -96,70 +102,12 @@ async function timeMode(time: number) {
                         userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex].slice(0, -1) : str);
                     }
                 }
-            } else if(/^[a-zA-Z0-9_]*$/.test(str)) {
+            } else if(str && /^[a-zA-Z0-9_]*$/.test(str)) {
                 userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex] + str : str);
             }
 
-            let resString: string = "";
-            let resArr: charArr[][] = [[]]; 
-            let wIndex = 0;
-        
-            let cursorSet: boolean = false;
-            for (let i: number = 0; i < sampleWords.length; i++) {
-                if (i > userInp.length - 1) {
-                    if (!cursorSet) {
-                        cursorSet = true;
-                        resArr[wIndex].push({chr: "|", code: 'nil'});
-                    }
-                    resString = resString + sampleWords[i];
-                    for(const n of sampleWords[i]) {
-                        resArr[wIndex].push({chr: n, code: 'nil'});
-                    };
-                } else {
-                    if (userInp[i].length >= sampleWords[i].length) {
-                        for (let j = 0; j < userInp[i].length; j++) {
-                            if (j < sampleWords[i].length) {
-                                if (sampleWords[i][j] === userInp[i][j]) {
-                                    resArr[wIndex].push({chr: userInp[i][j], code: 'grn'});
-                                } else {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
-                                }
-                            } else {
-                                resArr[wIndex].push({chr: userInp[i][j], code: 'mgn'});
-                            }
-                        }
-                        if (!cursorSet && i === userInp.length - 1 && i === curWordIndex) {
-                            cursorSet = true;
-                            resArr[wIndex].push({chr: "|", code: 'nil'});
-                        }
-                    } else {
-                        for (let j: number = 0; j < sampleWords[i].length; j++) {
-                            if (j < userInp[i].length) {
-                                if (sampleWords[i][j] === userInp[i][j]) {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'grn'});
-                                } else {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
-                                }
-                            } else {
-                                if (!cursorSet && i === curWordIndex) {
-                                    cursorSet = true;
-                                    resArr[wIndex].push({chr: "|", code: 'nil'});
-                                }
-                                if (i < curWordIndex) {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'gry'});
-                                } else {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'nil'});
-                                }
-                            }
-                        }
-                    }
-                }
+            let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex); 
 
-                if (i < sampleWords.length - 1) {
-                    resArr.push([]);
-                    wIndex++;
-                }
-            }
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
@@ -174,17 +122,14 @@ async function timeMode(time: number) {
             }
         }
     });
-    let resString: string = "|";
-    for (let i: number = 0; i < sampleWords.length; i++) {
-        resString = resString + sampleWords[i];
-        if (i < sampleWords.length - 1)
-            resString = resString + " ";
-    }
+
+    let resArr: charArr[][] = evaluateInp(sampleWords, [], 0); 
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
     logInBox(["Timer starts when you start typing. You have "+time+" seconds."]);
-    console.log(resString);
+    const formattedArr: string[] = formatCharArr(resArr);
+    logInBox(formattedArr);
 }
 
 async function countMode(count: number = null) {
@@ -237,70 +182,12 @@ async function countMode(count: number = null) {
                         userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex].slice(0, -1) : str);
                     }
                 }
-            } else if(/^[a-zA-Z0-9_]*$/.test(str)) {
+            } else if(str && /^[a-zA-Z0-9_]*$/.test(str)) {
                 userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex] + str : str);
             }
 
-            let resString: string = "";
-            let resArr: charArr[][] = [[]]; 
-            let wIndex = 0;
-        
-            let cursorSet: boolean = false;
-            for (let i: number = 0; i < sampleWords.length; i++) {
-                if (i > userInp.length - 1) {
-                    if (!cursorSet) {
-                        cursorSet = true;
-                        resArr[wIndex].push({chr: "|", code: 'nil'});
-                    }
-                    resString = resString + sampleWords[i];
-                    for(const n of sampleWords[i]) {
-                        resArr[wIndex].push({chr: n, code: 'nil'});
-                    };
-                } else {
-                    if (userInp[i].length >= sampleWords[i].length) {
-                        for (let j = 0; j < userInp[i].length; j++) {
-                            if (j < sampleWords[i].length) {
-                                if (sampleWords[i][j] === userInp[i][j]) {
-                                    resArr[wIndex].push({chr: userInp[i][j], code: 'grn'});
-                                } else {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
-                                }
-                            } else {
-                                resArr[wIndex].push({chr: userInp[i][j], code: 'mgn'});
-                            }
-                        }
-                        if (!cursorSet && i === userInp.length - 1 && i === curWordIndex) {
-                            cursorSet = true;
-                            resArr[wIndex].push({chr: "|", code: 'nil'});
-                        }
-                    } else {
-                        for (let j: number = 0; j < sampleWords[i].length; j++) {
-                            if (j < userInp[i].length) {
-                                if (sampleWords[i][j] === userInp[i][j]) {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'grn'});
-                                } else {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
-                                }
-                            } else {
-                                if (!cursorSet && i === curWordIndex) {
-                                    cursorSet = true;
-                                    resArr[wIndex].push({chr: "|", code: 'nil'});
-                                }
-                                if (i < curWordIndex) {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'gry'});
-                                } else {
-                                    resArr[wIndex].push({chr: sampleWords[i][j], code: 'nil'});
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (i < sampleWords.length - 1) {
-                    resArr.push([]);
-                    wIndex++;
-                }
-            }
+            let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex); 
+            
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
@@ -313,17 +200,75 @@ async function countMode(count: number = null) {
             }
         }
     });
-    let resString: string = "|";
-    for (let i: number = 0; i < sampleWords.length; i++) {
-        resString = resString + sampleWords[i];
-        if (i < sampleWords.length - 1)
-            resString = resString + " ";
-    }
+    let resArr: charArr[][] = evaluateInp(sampleWords, [], 0); 
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
-    logInBox(["Type "+wordCount+" words to finish blitz."]);
-    console.log(resString);
+    const formattedArr: string[] = formatCharArr(resArr);
+    logInBox(formattedArr);
+}
+
+function evaluateInp(sampleWords: string[], userInp: string[], curWordIndex: number) {
+    let resArr: charArr[][] = [[]];
+    let wIndex = 0;
+        
+    let cursorSet: boolean = false;
+    for (let i: number = 0; i < sampleWords.length; i++) {
+        if (i > userInp.length - 1) {
+            if (!cursorSet) {
+                cursorSet = true;
+                resArr[wIndex].push({chr: "|", code: 'nil'});
+            }
+            for(const n of sampleWords[i]) {
+                resArr[wIndex].push({chr: n, code: 'nil'});
+            };
+        } else {
+            if (userInp[i].length >= sampleWords[i].length) {
+                for (let j = 0; j < userInp[i].length; j++) {
+                    if (j < sampleWords[i].length) {
+                        if (sampleWords[i][j] === userInp[i][j]) {
+                            resArr[wIndex].push({chr: userInp[i][j], code: 'grn'});
+                        } else {
+                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
+                        }
+                    } else {
+                        resArr[wIndex].push({chr: userInp[i][j], code: 'mgn'});
+                    }
+                }
+                if (!cursorSet && i === userInp.length - 1 && i === curWordIndex) {
+                    cursorSet = true;
+                    resArr[wIndex].push({chr: "|", code: 'nil'});
+                }
+            } else {
+                for (let j: number = 0; j < sampleWords[i].length; j++) {
+                    if (j < userInp[i].length) {
+                        if (sampleWords[i][j] === userInp[i][j]) {
+                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'grn'});
+                        } else {
+                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
+                        }
+                    } else {
+                        if (!cursorSet && i === curWordIndex) {
+                            cursorSet = true;
+                            resArr[wIndex].push({chr: "|", code: 'nil'});
+                        }
+                        if (i < curWordIndex) {
+                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'gry'});
+                        } else {
+                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'nil'});
+                        }
+                    }
+                }
+            }
+        }
+
+        if (i < sampleWords.length - 1) {
+            resArr.push([]);
+            wIndex++;
+        }
+    }
+
+    return resArr;
 }
 
 function endBlitz(startTime: number, wordsTyped: number) {
