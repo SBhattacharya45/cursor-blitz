@@ -46,8 +46,6 @@ function startBlitz(options) {
 
 }
 
-// console.log(drawBox("Sample text"));
-
 async function timeMode(time: number) {
     let sampleWords: string[] = [];
     let wordCount: number = 30;
@@ -55,7 +53,6 @@ async function timeMode(time: number) {
         console.log('\x1b[31mPlease enter valid word count[1-100]\x1b[0m');
         process.exit();
     }
-    // let wordCount = 3;
     let userInp: string[] = [];
     let startTime: number = null;
 
@@ -65,7 +62,6 @@ async function timeMode(time: number) {
     for (let i: number = 0; i < wordCount; i++) {
         sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
     }
-    // sampleWords = ['apple', 'ball', 'cat'];
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
     process.stdin.on('keypress', async (str: string, key: Key) => {
@@ -139,7 +135,6 @@ async function countMode(count: number = null) {
         console.log('\x1b[31mPlease enter valid word count[1-100]\x1b[0m');
         process.exit();
     }
-    // let wordCount = 3;
     let userInp: string[] = [];
     let startTime: number = null;
 
@@ -149,7 +144,6 @@ async function countMode(count: number = null) {
     for (let i: number = 0; i < wordCount; i++) {
         sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
     }
-    // sampleWords = ['apple', 'ball', 'cat'];
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
     process.stdin.on('keypress', async (str: string, key: Key) => {
