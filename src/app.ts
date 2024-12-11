@@ -4,7 +4,7 @@ import { Key } from "readline";
 const readline = require('readline');
 const { program, Option } = require('commander');
 const figlet = require("figlet");
-const enData: string[] = require('./words/english.js').data;
+const enData: string[] = require('./words/english').data;
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 const ansiMap = {
@@ -21,36 +21,39 @@ interface charArr {
     code: string
 }
 
-program.name('blitz')
-program
-    .addOption(new Option('-m, --mode <flag>', 'mode').choices(['count', 'time']).makeOptionMandatory())
-    .addOption(new Option('-c, --count <num>', 'number of words for count mode').default('10', '10 words'))
-    .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'));
-
+program.name('blitz');
+program.command('time')
+    .description('Time limited blitz')
+    .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'))
+    .action((options) => {
+        startBlitz('time', options);
+    });
+program.command('count')
+    .description('Word limited blitz')
+    .addOption(new Option('-c, --count <num>', 'word limit for word mode').default('20', '20 Words'))
+    .action((options) => {
+        startBlitz('count', options);
+    });
 program.parse();
 
-const options = program.opts();
-
-startBlitz(options);
-
-function startBlitz(options) {
-    try {
-        if(options.mode === "count") {
-            countMode(options.count ? parseInt(options.count) : null);
-        } else if(options.mode === "time"){
-            timeMode(options.time ? parseInt(options.time) : 30);
-        }
-    } catch(err) {
-        console.error(err);
+function startBlitz(mode, options) {
+    switch (mode) {
+        case "time":
+            timeMode(options.time ? options.time : 30);
+            break;
+        case "count":
+            countMode(options.count ? options.count : 20);
+            break;
+        default:
+            countMode(options.count ? options.count : 20);
     }
-
 }
 
 async function timeMode(time: number) {
     let sampleWords: string[] = [];
     let wordCount: number = 30;
-    if(wordCount > 100 || wordCount < 1) {
-        console.log('\x1b[31mPlease enter valid word count[1-100]\x1b[0m');
+    if (time > 120 || time < 10) {
+        console.log('\x1b[31mERROR: Please enter valid time limit[10-120]\x1b[0m');
         process.exit();
     }
     let userInp: string[] = [];
@@ -98,20 +101,20 @@ async function timeMode(time: number) {
                         userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex].slice(0, -1) : str);
                     }
                 }
-            } else if(str && /^[a-zA-Z0-9_]*$/.test(str)) {
+            } else if (str && /^[a-zA-Z0-9_]*$/.test(str)) {
                 userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex] + str : str);
             }
 
-            let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex); 
+            let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
 
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["Countdown started for "+time+" seconds."]);
+            logInBox(["Countdown started for " + time + " seconds."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
-            if (userInp.length >  sampleWords.length - 10) {
+            if (userInp.length > sampleWords.length - 10) {
                 for (let i: number = 0; i < 10; i++) {
                     sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
                 }
@@ -119,11 +122,11 @@ async function timeMode(time: number) {
         }
     });
 
-    let resArr: charArr[][] = evaluateInp(sampleWords, [], 0); 
+    let resArr: charArr[][] = evaluateInp(sampleWords, [], 0);
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
-    logInBox(["Timer starts when you start typing. You have "+time+" seconds."]);
+    logInBox(["Timer starts when you start typing. You have " + time + " seconds."]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
@@ -131,8 +134,8 @@ async function timeMode(time: number) {
 async function countMode(count: number = null) {
     let sampleWords: string[] = [];
     let wordCount: number = (count ? count : 10);
-    if(wordCount > 100 || wordCount < 1) {
-        console.log('\x1b[31mPlease enter valid word count[1-100]\x1b[0m');
+    if (wordCount > 100 || wordCount < 1) {
+        console.log('\x1b[31mERROR: Please enter valid word count[1-100]\x1b[0m');
         process.exit();
     }
     let userInp: string[] = [];
@@ -176,16 +179,16 @@ async function countMode(count: number = null) {
                         userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex].slice(0, -1) : str);
                     }
                 }
-            } else if(str && /^[a-zA-Z0-9_]*$/.test(str)) {
+            } else if (str && /^[a-zA-Z0-9_]*$/.test(str)) {
                 userInp[curWordIndex] = (userInp[curWordIndex] ? userInp[curWordIndex] + str : str);
             }
 
-            let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex); 
-            
+            let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
+
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["Type "+wordCount+" words to finish blitz."]);
+            logInBox(["Type " + wordCount + " words to finish blitz."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
@@ -194,7 +197,7 @@ async function countMode(count: number = null) {
             }
         }
     });
-    let resArr: charArr[][] = evaluateInp(sampleWords, [], 0); 
+    let resArr: charArr[][] = evaluateInp(sampleWords, [], 0);
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
@@ -205,51 +208,51 @@ async function countMode(count: number = null) {
 function evaluateInp(sampleWords: string[], userInp: string[], curWordIndex: number) {
     let resArr: charArr[][] = [[]];
     let wIndex = 0;
-        
+
     let cursorSet: boolean = false;
     for (let i: number = 0; i < sampleWords.length; i++) {
         if (i > userInp.length - 1) {
             if (!cursorSet) {
                 cursorSet = true;
-                resArr[wIndex].push({chr: "|", code: 'nil'});
+                resArr[wIndex].push({ chr: "|", code: 'nil' });
             }
-            for(const n of sampleWords[i]) {
-                resArr[wIndex].push({chr: n, code: 'nil'});
+            for (const n of sampleWords[i]) {
+                resArr[wIndex].push({ chr: n, code: 'nil' });
             };
         } else {
             if (userInp[i].length >= sampleWords[i].length) {
                 for (let j = 0; j < userInp[i].length; j++) {
                     if (j < sampleWords[i].length) {
                         if (sampleWords[i][j] === userInp[i][j]) {
-                            resArr[wIndex].push({chr: userInp[i][j], code: 'grn'});
+                            resArr[wIndex].push({ chr: userInp[i][j], code: 'grn' });
                         } else {
-                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
+                            resArr[wIndex].push({ chr: sampleWords[i][j], code: 'red' });
                         }
                     } else {
-                        resArr[wIndex].push({chr: userInp[i][j], code: 'mgn'});
+                        resArr[wIndex].push({ chr: userInp[i][j], code: 'mgn' });
                     }
                 }
                 if (!cursorSet && i === userInp.length - 1 && i === curWordIndex) {
                     cursorSet = true;
-                    resArr[wIndex].push({chr: "|", code: 'nil'});
+                    resArr[wIndex].push({ chr: "|", code: 'nil' });
                 }
             } else {
                 for (let j: number = 0; j < sampleWords[i].length; j++) {
                     if (j < userInp[i].length) {
                         if (sampleWords[i][j] === userInp[i][j]) {
-                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'grn'});
+                            resArr[wIndex].push({ chr: sampleWords[i][j], code: 'grn' });
                         } else {
-                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'red'});
+                            resArr[wIndex].push({ chr: sampleWords[i][j], code: 'red' });
                         }
                     } else {
                         if (!cursorSet && i === curWordIndex) {
                             cursorSet = true;
-                            resArr[wIndex].push({chr: "|", code: 'nil'});
+                            resArr[wIndex].push({ chr: "|", code: 'nil' });
                         }
                         if (i < curWordIndex) {
-                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'gry'});
+                            resArr[wIndex].push({ chr: sampleWords[i][j], code: 'gry' });
                         } else {
-                            resArr[wIndex].push({chr: sampleWords[i][j], code: 'nil'});
+                            resArr[wIndex].push({ chr: sampleWords[i][j], code: 'nil' });
                         }
                     }
                 }
@@ -289,18 +292,18 @@ function formatCharArr(textArr: charArr[][]) {
     let resIndex: number = 0;
 
     let charCount = 0;
-    for(const t of textArr) {
-        if(charCount + t.length + 1 > lineLength) {
+    for (const t of textArr) {
+        if (charCount + t.length + 1 > lineLength) {
             resIndex++;
             resString[resIndex] = "";
             charCount = 0;
         }
 
-        if(resString[resIndex] !== ""){
+        if (resString[resIndex] !== "") {
             resString[resIndex] += " ";
             charCount++;
         }
-        for(const k of t) {
+        for (const k of t) {
             resString[resIndex] += ansiMap[k.code] + k.chr + ansiMap['nil'];
             charCount++;
         }
@@ -310,11 +313,11 @@ function formatCharArr(textArr: charArr[][]) {
 }
 
 function logInBox(a: string[]) {
-    const boxTop: string = "╭" + "─".repeat(boxWidth-2) + "╮";
-    const boxBottom: string = "╰" + "─".repeat(boxWidth-2) + "╯";
+    const boxTop: string = "╭" + "─".repeat(boxWidth - 2) + "╮";
+    const boxBottom: string = "╰" + "─".repeat(boxWidth - 2) + "╯";
 
     console.log(boxTop);
-    for(const r of a) {
+    for (const r of a) {
         console.log("│ " + r + " ".repeat(boxWidth - 4 - r.replace(ansiRegex, "").length) + " │");
     }
     console.log(boxBottom);
