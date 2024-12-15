@@ -21,6 +21,13 @@ interface charArr {
     code: string
 }
 
+interface statObj {
+    time: number,
+    gwpm: number,
+    nwpm: number,
+    accuracy: number,
+}
+
 program.name('blitz');
 program.command('time')
     .description('Time limited blitz')
@@ -52,15 +59,15 @@ function startBlitz(mode, options) {
 async function timeMode(time: number) {
     let sampleWords: string[] = [];
     let wordCount: number = 30;
+    let userInp: string[] = [];
+    let startTime: number = null;
+    let curWordIndex: number = 0;
+    let backLimit: number = 0;
+
     if (time > 120 || time < 10) {
         console.log('\x1b[31mERROR: Please enter valid time limit[10-120]\x1b[0m');
         process.exit();
     }
-    let userInp: string[] = [];
-    let startTime: number = null;
-
-    let curWordIndex: number = 0;
-    let backLimit: number = 0;
 
     for (let i: number = 0; i < wordCount; i++) {
         sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
@@ -71,7 +78,10 @@ async function timeMode(time: number) {
         if (startTime === null) {
             startTime = new Date().getTime();
             setTimeout(() => {
-                endBlitz(startTime, userInp.length);
+                let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
+                const endTime: number = new Date().getTime();
+                const stats: statObj = calcStats(resArr, startTime, endTime);
+                endBlitz(stats);
             }, time * 1000)
         }
         if (key.ctrl && key.name === 'c') {
@@ -134,16 +144,16 @@ async function timeMode(time: number) {
 async function countMode(count: number = null) {
     let sampleWords: string[] = [];
     let wordCount: number = (count ? count : 10);
+    let userInp: string[] = [];
+    let startTime: number = null;
+    let curWordIndex: number = 0;
+    let backLimit: number = 0;
+
     if (wordCount > 100 || wordCount < 1) {
         console.log('\x1b[31mERROR: Please enter valid word count[1-100]\x1b[0m');
         process.exit();
     }
-    let userInp: string[] = [];
-    let startTime: number = null;
-
-    let curWordIndex: number = 0;
-    let backLimit: number = 0;
-
+    
     for (let i: number = 0; i < wordCount; i++) {
         sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
     }
@@ -193,7 +203,9 @@ async function countMode(count: number = null) {
             logInBox(formattedArr);
 
             if (userInp.length === sampleWords.length && sampleWords[wordCount - 1] === userInp[wordCount - 1]) {
-                endBlitz(startTime, wordCount);
+                const endTime: number = new Date().getTime();
+                const stats: statObj = calcStats(resArr, startTime, endTime);
+                endBlitz(stats);
             }
         }
     });
@@ -201,6 +213,7 @@ async function countMode(count: number = null) {
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
+    logInBox(["Type " + wordCount + " words to finish blitz."]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
@@ -268,19 +281,63 @@ function evaluateInp(sampleWords: string[], userInp: string[], curWordIndex: num
     return resArr;
 }
 
-function endBlitz(startTime: number, wordsTyped: number) {
-    const endTime: number = new Date().getTime();
-    printEndScreen(startTime, endTime, wordsTyped);
+function calcStats(resArr: charArr[][], startTime: number, endTime: number) {
+    const c =  getStatCount(resArr);
+
+    const tsec: number = (endTime - startTime) / 1000;
+    const tmin: number = tsec / 60;
+
+    const gwpm = Math.floor(((c.correctCount + c.wrongCount)/5) / tmin);
+    const nwpm = Math.floor(((c.correctCount)/5) / tmin);
+    const accuracy = Math.floor((c.correctCount/(c.correctCount + c.wrongCount)) * 100);
+
+    const res: statObj = {
+        time: tsec,
+        gwpm,
+        nwpm,
+        accuracy
+    }
+
+    return res;
+}
+
+function getStatCount(resArr: charArr[][]) {
+    let correctCount = 0;
+    let wrongCount = 0;
+    let extraCount = 0;
+
+    for(let i: number = 0; i < resArr.length; i++) {
+        for(let j: number = 0; j < resArr[i].length; j++) {
+            const r = resArr[i][j];
+            if(r.chr === "|") {
+                return {correctCount, wrongCount, extraCount};
+            }
+            if(r.code === "grn")
+                correctCount++;
+            else if(r.code === "red")
+                wrongCount++;
+            else if(r.code === "mgn")
+                extraCount++;
+        }
+        correctCount++;
+    }
+
+    return {correctCount, wrongCount, extraCount};
+}
+
+function endBlitz(stats: statObj) {
+    printEndScreen(stats);
     process.exit();
 }
 
-function printEndScreen(startTime: number, endTime: number, wordCount: number) {
+function printEndScreen(stats: statObj) {
     let result: string[] = [];
-    const timeDiff: number = (endTime - startTime) / 1000;
 
     result.push('Congrats, you\'ve completed the blitz.');
-    result.push(`Time: ${(Math.round(timeDiff * 100) / 100)} seconds`);
-    result.push(`Speed: ${Math.floor((wordCount / timeDiff) * 60)} WPM`);
+    result.push(`Time: ${Math.floor(stats.time)} seconds`);
+    result.push(`WPM: ${stats.nwpm}`);
+    result.push(`Gross WPM: ${stats.gwpm}`);
+    result.push(`Accuracy: ${stats.accuracy}%`);
 
     logInBox(result);
 }
