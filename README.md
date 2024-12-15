@@ -6,12 +6,12 @@ Test your typing skills directly in the CLI. Challenge your speed and accuracy w
 ```
 git clone https://github.com/SBhattacharya45/cursor-blitz.git
 npm i
-blitz -m time
+blitz time
 ```
 
 # Usage
+### Commands:
+- `blitz time -t <time in seconds>` Time limited mode. Default is 30 seconds when no time specified.
+- `blitz count -c <number of workds>` Word limited mode. Default is 20 words when no number specified.
 ### Options:
 - `-h, --help`  Show help
-- `-m, --mode <flag>`  Mode of blitz. Possible flags: count, time.
-- `-c, --count <num>`  Number of words for count mode.
-- `-t, --time <num>`  Time in seconds for time mode.
