@@ -3,10 +3,18 @@
 Test your typing skills directly in the CLI. Challenge your speed and accuracy with simple typing exercises, all within your terminal.
 
 # Install
+
+#### With NPM
+```
+npm i -g cursor-blitz
+blitz
+```
+#### Manually
 ```
 git clone https://github.com/SBhattacharya45/cursor-blitz.git
 npm i
-blitz time
+npm run build
+npx blitz
 ```
 
 # Usage
