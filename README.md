@@ -1,5 +1,7 @@
 # Cursor Blitz
 
+![cursor-blitz](https://i.ibb.co/L1yGYfC/a.png)
+
 Test your typing skills directly in the CLI. Challenge your speed and accuracy with simple typing exercises, all within your terminal.
 
 # Install
