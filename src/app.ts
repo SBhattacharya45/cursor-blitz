@@ -179,7 +179,7 @@ async function countMode(count: number = null) {
                     curWordIndex++;
                     userInp[curWordIndex] = "";
                 }
-            } else if (str === "\b") {
+            } else if (str === "\b" || (key && key.name === "backspace")) {
                 if (userInp.length === 0) {
                     return;
                 } else {
