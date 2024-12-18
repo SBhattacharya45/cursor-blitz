@@ -65,7 +65,7 @@ async function timeMode(time: number) {
     let backLimit: number = 0;
 
     if (time > 120 || time < 10) {
-        console.log('\x1b[31mERROR: Please enter valid time limit[10-120]\x1b[0m');
+        logError("Please enter valid time limit[10-120]");
         process.exit();
     }
 
@@ -73,7 +73,12 @@ async function timeMode(time: number) {
         sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
     }
     readline.emitKeypressEvents(process.stdin);
-    process.stdin.setRawMode(true);
+    if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+    } else {
+        logError("The input device is not a TTY");
+        process.exit();
+    }
     process.stdin.on('keypress', async (str: string, key: Key) => {
         if (startTime === null) {
             startTime = new Date().getTime();
@@ -150,7 +155,7 @@ async function countMode(count: number = null) {
     let backLimit: number = 0;
 
     if (wordCount > 100 || wordCount < 1) {
-        console.log('\x1b[31mERROR: Please enter valid word count[1-100]\x1b[0m');
+        logError("Please enter valid word count[1-100]");
         process.exit();
     }
     
@@ -378,4 +383,8 @@ function logInBox(a: string[]) {
         console.log("│ " + r + " ".repeat(boxWidth - 4 - r.replace(ansiRegex, "").length) + " │");
     }
     console.log(boxBottom);
+}
+
+function logError(err: string) {
+    console.log(`\x1b[31mERROR: ${err}\x1b[0m`);
 }
