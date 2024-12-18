@@ -198,7 +198,7 @@ async function countMode(count: number = null) {
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["Type " + wordCount + " words to finish blitz."]);
+            logInBox(["Type " + wordCount + " words to finish blitz.", "Last word has to be correct to complete the test."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
@@ -213,7 +213,7 @@ async function countMode(count: number = null) {
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
-    logInBox(["Type " + wordCount + " words to finish blitz."]);
+    logInBox(["Type " + wordCount + " words to finish blitz.", "Last word has to be correct to complete the test."]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
