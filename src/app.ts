@@ -125,7 +125,7 @@ async function timeMode(time: number) {
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["Countdown started for " + time + " seconds."]);
+            logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. Timer updates as you type."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
