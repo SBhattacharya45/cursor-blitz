@@ -21,7 +21,7 @@ npx blitz
 
 # Usage
 ### Commands:
-- `blitz time -t <time in seconds>` Time limited mode. Default is 30 seconds when no time specified.
-- `blitz count -c <number of words>` Word limited mode. Default is 20 words when no number specified.
+- `blitz time <time in seconds>` Time limited mode. Default is 30 seconds when no time specified.
+- `blitz count <number of words>` Word limited mode. Default is 20 words when no number specified.
 ### Options:
 - `-h, --help`  Show help

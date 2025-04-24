@@ -2,7 +2,7 @@
 import { Key } from "readline";
 
 const readline = require('readline');
-const { program, Option } = require('commander');
+const { program, Option, Argument } = require('commander');
 const figlet = require("figlet");
 const enData: string[] = require('./words/english').data;
 
@@ -31,28 +31,30 @@ interface statObj {
 program.name('blitz');
 program.command('time')
     .description('Time limited blitz')
-    .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'))
+    // .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'))
+    .addArgument(new Argument('[time]', 'time in seconds').default(30, '30 seconds'))
     .action((options) => {
         startBlitz('time', options);
     });
 program.command('count')
     .description('Word limited blitz')
-    .addOption(new Option('-c, --count <num>', 'word limit for word mode').default('20', '20 Words'))
+    // .addOption(new Option('-c, --count <num>', 'word limit for word mode').default('20', '20 Words'))
+    .addArgument(new Argument('[count]', 'number of words').default(20, '20 words'))
     .action((options) => {
         startBlitz('count', options);
     });
 program.parse();
 
-function startBlitz(mode, options) {
+function startBlitz(mode, arg) {
     switch (mode) {
         case "time":
-            timeMode(options.time ? options.time : 30);
+            timeMode(arg);
             break;
         case "count":
-            countMode(options.count ? options.count : 20);
+            countMode(arg);
             break;
         default:
-            countMode(options.count ? options.count : 20);
+            countMode(arg);
     }
 }
 
@@ -125,7 +127,7 @@ async function timeMode(time: number) {
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["Countdown started for " + time + " seconds."]);
+            logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. Timer updates as you type."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
