@@ -1,44 +1,44 @@
 #!/usr/bin/env node
 import { Key } from "readline";
 import { charArr, statObj } from './types';
-import { formatCharArr, logInBox, logError } from './utils';
+import { fetchWord, formatCharArr, logInBox, logError } from './utils';
 
 const readline = require('readline');
 const { program, Option, Argument } = require('commander');
 const figlet = require("figlet");
-const enData: string[] = require('./words/english').data;
 
 program.name('blitz');
 program.command('time')
     .description('Time limited blitz')
-    // .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'))
     .addArgument(new Argument('[time]', 'time in seconds').default(30, '30 seconds'))
-    .action((options) => {
-        startBlitz('time', options);
+    .addOption(new Option('-n, --no-capitalize', 'use non-capitalized words only').default(true))
+    .action((time, options) => {
+        startBlitz('time', { time, ...options });
     });
 program.command('count')
     .description('Word limited blitz')
-    // .addOption(new Option('-c, --count <num>', 'word limit for word mode').default('20', '20 Words'))
     .addArgument(new Argument('[count]', 'number of words').default(20, '20 words'))
-    .action((options) => {
-        startBlitz('count', options);
+    .addOption(new Option('-n, --no-capitalize', 'use non-capitalized words only').default(true))
+    .action((count, options) => {
+        startBlitz('count', { count, ...options });
     });
 program.parse();
 
 function startBlitz(mode, arg) {
+    const noCapitalize = arg.capitalize === false;
     switch (mode) {
         case "time":
-            timeMode(arg);
+            timeMode(typeof arg === "object" && "time" in arg ? arg.time : arg, noCapitalize);
             break;
         case "count":
-            countMode(arg);
+            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, noCapitalize);
             break;
         default:
-            countMode(arg);
+            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, noCapitalize);
     }
 }
 
-async function timeMode(time: number) {
+async function timeMode(time: number, noCapitalize: boolean = false) {
     let sampleWords: string[] = [];
     let wordCount: number = 30;
     let userInp: string[] = [];
@@ -52,7 +52,7 @@ async function timeMode(time: number) {
     }
 
     for (let i: number = 0; i < wordCount; i++) {
-        sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
+        sampleWords.push(fetchWord(noCapitalize));
     }
     readline.emitKeypressEvents(process.stdin);
     if (process.stdin.isTTY) {
@@ -107,13 +107,13 @@ async function timeMode(time: number) {
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. Timer updates as you type."]);
+            logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. The timer updates as you type."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
             if (userInp.length > sampleWords.length - 10) {
                 for (let i: number = 0; i < 10; i++) {
-                    sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
+                    sampleWords.push(fetchWord(noCapitalize));
                 }
             }
         }
@@ -128,7 +128,7 @@ async function timeMode(time: number) {
     logInBox(formattedArr);
 }
 
-async function countMode(count: number = null) {
+async function countMode(count: number = null, noCapitalize: boolean = false) {
     let sampleWords: string[] = [];
     let wordCount: number = (count ? count : 10);
     let userInp: string[] = [];
@@ -142,7 +142,7 @@ async function countMode(count: number = null) {
     }
     
     for (let i: number = 0; i < wordCount; i++) {
-        sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
+        sampleWords.push(fetchWord(noCapitalize));
     }
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
@@ -185,7 +185,7 @@ async function countMode(count: number = null) {
             console.clear();
             const d: string = await figlet('Cursor Blitz');
             console.log(d);
-            logInBox(["Type " + wordCount + " words to finish blitz.", "Last word has to be correct to complete the test."]);
+            logInBox(["Type " + wordCount + " words to finish the blitz.", "The final word must be correct to complete the challenge"]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
@@ -200,7 +200,7 @@ async function countMode(count: number = null) {
     console.clear();
     const d: string = await figlet('Cursor Blitz');
     console.log(d);
-    logInBox(["Type " + wordCount + " words to finish blitz.", "Last word has to be correct to complete the test."]);
+    logInBox(["Type " + wordCount + " words to finish the blitz.", "The final word must be correct to complete the challenge"]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
