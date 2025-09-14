@@ -1,5 +1,5 @@
+const engDb = require('better-sqlite3')('../data/eng.db');
 import { charArr } from './types';
-import { engCapitalize, engNonCapitalized } from './words/english';
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 const ansiMap = {
@@ -12,7 +12,15 @@ const ansiMap = {
 const boxWidth = 80;
 
 export function fetchWord(noCapitalize: boolean = false) {
-    return (noCapitalize ? engNonCapitalized[Math.floor(Math.random() * engNonCapitalized.length)] : (Math.random() > 0.5 ? engCapitalize[Math.floor(Math.random() * engCapitalize.length)] : engNonCapitalized[Math.floor(Math.random() * engNonCapitalized.length)]));
+  let row;
+
+  if (noCapitalize) {
+    row = engDb.prepare('SELECT word FROM words WHERE capitalized = 0 ORDER BY RANDOM() LIMIT 1').get();
+  } else {
+    row = engDb.prepare('SELECT word FROM words ORDER BY RANDOM() LIMIT 1').get();
+  }
+
+  return row?.word || '';
 }
 
 export function formatCharArr(textArr: charArr[][]) {
