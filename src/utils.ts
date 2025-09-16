@@ -15,8 +15,13 @@ const ansiMap = {
 const boxWidth = 80;
 
 export function loadWordsFromCsv(filePath: string): string[] {
+  if (!filePath.endsWith('.csv')) {
+    logError('Only CSV files are allowed.');
+    process.exit();
+  }
   if (!fs.existsSync(filePath)) {
-    throw new Error(`File not found: ${filePath}`);
+    logError(`File not found at ${filePath}`);
+    process.exit();
   }
 
   const content = fs.readFileSync(filePath, 'utf-8');
@@ -25,7 +30,12 @@ export function loadWordsFromCsv(filePath: string): string[] {
     columns: true,       // first row is header
     skip_empty_lines: true,
     trim: true
-  });
+  }) as Array<Record<string, any>>;
+
+  if (!records[0] || !('word' in records[0])) {
+    logError('CSV must have a "word" column.');
+    process.exit();
+  }
 
   const words: string[] = records.map((row: any) => row.word);
 
@@ -33,8 +43,13 @@ export function loadWordsFromCsv(filePath: string): string[] {
 }
 
 export function fetchWord() {
-  let row = engDb.prepare('SELECT word FROM words ORDER BY RANDOM() LIMIT 1').get();
-  return row?.word || '';
+  try {
+    let row = engDb.prepare('SELECT word FROM words ORDER BY RANDOM() LIMIT 1').get();
+    return row?.word || '';
+  } catch (err) {
+    logError('Database error: ' + err.message);
+    process.exit();
+  }
 }
 
 export function formatCharArr(textArr: charArr[][]) {
