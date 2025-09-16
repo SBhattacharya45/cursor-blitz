@@ -1,50 +1,75 @@
 #!/usr/bin/env node
 import { Key } from "readline";
 import { charArr, statObj } from './types';
-import { fetchWord, formatCharArr, logInBox, logError } from './utils';
+import { fetchWord, formatCharArr, logInBox, logError, loadWordsFromCsv } from './utils';
 
 const readline = require('readline');
 const { program, Option, Argument } = require('commander');
 const figlet = require("figlet");
 
-program.name('blitz');
-program.command('time')
-    .description('Time limited blitz')
-    .addArgument(new Argument('[time]', 'time in seconds').default(30, '30 seconds'))
-    .addOption(new Option('-n, --no-capitalize', 'use non-capitalized words only').default(true))
-    .action((time, options) => {
-        startBlitz('time', { time, ...options });
-    });
-program.command('count')
-    .description('Word limited blitz')
-    .addArgument(new Argument('[count]', 'number of words').default(20, '20 words'))
-    .addOption(new Option('-n, --no-capitalize', 'use non-capitalized words only').default(true))
-    .action((count, options) => {
-        startBlitz('count', { count, ...options });
-    });
-program.parse();
+try {
+    program.name('blitz');
+    program.command('time')
+        .description('Time limited blitz')
+        .addArgument(new Argument('[time]', 'time in seconds').default(30, '30 seconds').argParser((value) => {
+            const num = parseInt(value, 10);
+            if (isNaN(num)) {
+                throw new Error('Time must be a number.');
+            }
+            return num;
+        })
+        )
+        .addOption(new Option('-w, --words <path>', 'path to custom CSV file for words').default(null))
+        .action((time, options) => {
+            startBlitz('time', { time, ...options });
+        });
+    program.command('count')
+        .description('Word limited blitz')
+        .addArgument(new Argument('[count]', 'number of words').default(20, '20 words').argParser((value) => {
+            const num = parseInt(value, 10);
+            if (isNaN(num)) {
+                throw new Error('Count must be a number.');
+            }
+            return num;
+        }))
+        .addOption(new Option('-w, --words <path>', 'path to custom CSV file for words').default(null))
+        .action((count, options) => {
+            startBlitz('count', { count, ...options });
+        });
+    program.parse();
+} catch(err) {
+    logError(err.message);
+    process.exit();
+}
 
 function startBlitz(mode, arg) {
-    const noCapitalize = arg.capitalize === false;
     switch (mode) {
         case "time":
-            timeMode(typeof arg === "object" && "time" in arg ? arg.time : arg, noCapitalize);
+            timeMode(typeof arg === "object" && "time" in arg ? arg.time : arg, arg.words);
             break;
         case "count":
-            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, noCapitalize);
+            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, arg.words);
             break;
         default:
-            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, noCapitalize);
+            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, arg.words);
     }
 }
 
-async function timeMode(time: number, noCapitalize: boolean = false) {
+async function timeMode(time: number, words: string = null) {
     let sampleWords: string[] = [];
     let wordCount: number = 30;
     let userInp: string[] = [];
     let startTime: number = null;
     let curWordIndex: number = 0;
     let backLimit: number = 0;
+    let customWords: string[] = [];
+    if(words !== null) {
+        customWords = loadWordsFromCsv(words);
+        if(customWords.length === 0) {
+            logError("No words found in the provided CSV file.");
+            process.exit();
+        }
+    }
 
     if (time > 120 || time < 10) {
         logError("Please enter valid time limit[10-120]");
@@ -52,7 +77,12 @@ async function timeMode(time: number, noCapitalize: boolean = false) {
     }
 
     for (let i: number = 0; i < wordCount; i++) {
-        sampleWords.push(fetchWord(noCapitalize));
+        if(customWords.length > 0) {
+            const randIndex = Math.floor(Math.random() * customWords.length);
+            sampleWords.push(customWords[randIndex]);
+        } else {
+            sampleWords.push(fetchWord());
+        }
     }
     readline.emitKeypressEvents(process.stdin);
     if (process.stdin.isTTY) {
@@ -113,7 +143,12 @@ async function timeMode(time: number, noCapitalize: boolean = false) {
 
             if (userInp.length > sampleWords.length - 10) {
                 for (let i: number = 0; i < 10; i++) {
-                    sampleWords.push(fetchWord(noCapitalize));
+                    if(customWords.length > 0) {
+                        const randIndex = Math.floor(Math.random() * customWords.length);
+                        sampleWords.push(customWords[randIndex]);
+                    } else {
+                        sampleWords.push(fetchWord());
+                    }
                 }
             }
         }
@@ -128,13 +163,21 @@ async function timeMode(time: number, noCapitalize: boolean = false) {
     logInBox(formattedArr);
 }
 
-async function countMode(count: number = null, noCapitalize: boolean = false) {
+async function countMode(count: number = null, words: string = null) {
     let sampleWords: string[] = [];
     let wordCount: number = (count ? count : 10);
     let userInp: string[] = [];
     let startTime: number = null;
     let curWordIndex: number = 0;
     let backLimit: number = 0;
+    let customWords: string[] = [];
+    if(words !== null) {
+        customWords = loadWordsFromCsv(words);
+        if(customWords.length === 0) {
+            logError("No words found in the provided CSV file.");
+            process.exit();
+        }
+    }
 
     if (wordCount > 100 || wordCount < 1) {
         logError("Please enter valid word count[1-100]");
@@ -142,7 +185,12 @@ async function countMode(count: number = null, noCapitalize: boolean = false) {
     }
     
     for (let i: number = 0; i < wordCount; i++) {
-        sampleWords.push(fetchWord(noCapitalize));
+        if(customWords.length > 0) {
+            const randIndex = Math.floor(Math.random() * customWords.length);
+            sampleWords.push(customWords[randIndex]);
+        } else {
+            sampleWords.push(fetchWord());
+        }
     }
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);

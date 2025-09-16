@@ -1,4 +1,7 @@
-const engDb = require('better-sqlite3')('../data/eng.db');
+import fs from 'fs';
+import path from 'path';
+import { parse } from 'csv-parse/sync';
+const engDb = require('better-sqlite3')(path.join(__dirname, '../data/eng.db'));
 import { charArr } from './types';
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
@@ -11,15 +14,26 @@ const ansiMap = {
 }
 const boxWidth = 80;
 
-export function fetchWord(noCapitalize: boolean = false) {
-  let row;
-
-  if (noCapitalize) {
-    row = engDb.prepare('SELECT word FROM words WHERE capitalized = 0 ORDER BY RANDOM() LIMIT 1').get();
-  } else {
-    row = engDb.prepare('SELECT word FROM words ORDER BY RANDOM() LIMIT 1').get();
+export function loadWordsFromCsv(filePath: string): string[] {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`File not found: ${filePath}`);
   }
 
+  const content = fs.readFileSync(filePath, 'utf-8');
+
+  const records = parse(content, {
+    columns: true,       // first row is header
+    skip_empty_lines: true,
+    trim: true
+  });
+
+  const words: string[] = records.map((row: any) => row.word);
+
+  return words;
+}
+
+export function fetchWord() {
+  let row = engDb.prepare('SELECT word FROM words ORDER BY RANDOM() LIMIT 1').get();
   return row?.word || '';
 }
 
