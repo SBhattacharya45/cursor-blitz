@@ -56,6 +56,7 @@ function startBlitz(mode, arg) {
 }
 
 async function timeMode(time: number, words: string = null) {
+    let header: string = "";
     let sampleWords: string[] = [];
     let wordCount: number = 30;
     let userInp: string[] = [];
@@ -76,14 +77,7 @@ async function timeMode(time: number, words: string = null) {
         process.exit();
     }
 
-    for (let i: number = 0; i < wordCount; i++) {
-        if(customWords.length > 0) {
-            const randIndex = Math.floor(Math.random() * customWords.length);
-            sampleWords.push(customWords[randIndex]);
-        } else {
-            sampleWords.push(fetchWord());
-        }
-    }
+    sampleWords = generateWords(customWords, wordCount);
     readline.emitKeypressEvents(process.stdin);
     if (process.stdin.isTTY) {
         process.stdin.setRawMode(true);
@@ -135,8 +129,7 @@ async function timeMode(time: number, words: string = null) {
             let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
 
             console.clear();
-            const d: string = await figlet('Cursor Blitz');
-            console.log(d);
+            console.log(header);
             logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. The timer updates as you type."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
@@ -156,14 +149,15 @@ async function timeMode(time: number, words: string = null) {
 
     let resArr: charArr[][] = evaluateInp(sampleWords, [], 0);
     console.clear();
-    const d: string = await figlet('Cursor Blitz');
-    console.log(d);
+    header = await figlet('Cursor Blitz');
+    console.log(header);
     logInBox(["Timer starts when you start typing. You have " + time + " seconds."]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
 
 async function countMode(count: number = null, words: string = null) {
+    let header: string = "";
     let sampleWords: string[] = [];
     let wordCount: number = (count ? count : 10);
     let userInp: string[] = [];
@@ -184,16 +178,15 @@ async function countMode(count: number = null, words: string = null) {
         process.exit();
     }
     
-    for (let i: number = 0; i < wordCount; i++) {
-        if(customWords.length > 0) {
-            const randIndex = Math.floor(Math.random() * customWords.length);
-            sampleWords.push(customWords[randIndex]);
-        } else {
-            sampleWords.push(fetchWord());
-        }
-    }
+    sampleWords = generateWords(customWords, wordCount);
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
+    if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+    } else {
+        logError("The input device is not a TTY");
+        process.exit();
+    }
     process.stdin.on('keypress', async (str: string, key: Key) => {
         if (startTime === null)
             startTime = new Date().getTime();
@@ -231,8 +224,7 @@ async function countMode(count: number = null, words: string = null) {
             let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
 
             console.clear();
-            const d: string = await figlet('Cursor Blitz');
-            console.log(d);
+            console.log(header);
             logInBox(["Type " + wordCount + " words to finish the blitz.", "The final word must be correct to complete the challenge"]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
@@ -246,8 +238,8 @@ async function countMode(count: number = null, words: string = null) {
     });
     let resArr: charArr[][] = evaluateInp(sampleWords, [], 0);
     console.clear();
-    const d: string = await figlet('Cursor Blitz');
-    console.log(d);
+    header = await figlet('Cursor Blitz');
+    console.log(header);
     logInBox(["Type " + wordCount + " words to finish the blitz.", "The final word must be correct to complete the challenge"]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
@@ -375,4 +367,17 @@ function printEndScreen(stats: statObj) {
     result.push(`Accuracy: ${stats.accuracy}%`);
 
     logInBox(result);
+}
+
+function generateWords(customWords: string[] = [], count: number = 10) {
+    let words: string[] = [];
+    for (let i: number = 0; i < count; i++) {
+        if(customWords.length > 0) {
+            const randIndex = Math.floor(Math.random() * customWords.length);
+            words.push(customWords[randIndex]);
+        } else {
+            words.push(fetchWord());
+        }
+    }
+    return words;
 }
