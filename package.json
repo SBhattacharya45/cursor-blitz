@@ -1,10 +1,10 @@
 {
   "name": "cursor-blitz",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "",
   "repository": {
-      "type": "git",
-      "url": "https://github.com/SBhattacharya45/cursor-blitz"
+    "type": "git",
+    "url": "https://github.com/SBhattacharya45/cursor-blitz"
   },
   "main": "dist/app.js",
   "scripts": {
@@ -19,10 +19,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "better-sqlite3": "^12.2.0",
     "commander": "^12.1.0",
     "figlet": "^1.7.0"
   },
   "devDependencies": {
+    "@types/csv-parse": "^1.1.12",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.9.0",

@@ -1,79 +1,83 @@
 #!/usr/bin/env node
 import { Key } from "readline";
+import { charArr, statObj } from './types';
+import { fetchWord, formatCharArr, logInBox, logError, loadWordsFromCsv } from './utils';
 
 const readline = require('readline');
 const { program, Option, Argument } = require('commander');
 const figlet = require("figlet");
-const enData: string[] = require('./words/english').data;
 
-const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
-const ansiMap = {
-    grn: '\x1b[32m',
-    red: '\x1b[31m',
-    mgn: '\x1b[35m',
-    gry: '\x1b[2m',
-    nil: '\x1b[0m'
+try {
+    program.name('blitz');
+    program.command('time')
+        .description('Time limited blitz')
+        .addArgument(new Argument('[time]', 'time in seconds').default(30, '30 seconds').argParser((value) => {
+            const num = parseInt(value, 10);
+            if (isNaN(num)) {
+                throw new Error('Time must be a number.');
+            }
+            return num;
+        })
+        )
+        .addOption(new Option('-w, --words <path>', 'path to custom CSV file for words').default(null))
+        .action((time, options) => {
+            startBlitz('time', { time, ...options });
+        });
+    program.command('count')
+        .description('Word limited blitz')
+        .addArgument(new Argument('[count]', 'number of words').default(20, '20 words').argParser((value) => {
+            const num = parseInt(value, 10);
+            if (isNaN(num)) {
+                throw new Error('Count must be a number.');
+            }
+            return num;
+        }))
+        .addOption(new Option('-w, --words <path>', 'path to custom CSV file for words').default(null))
+        .action((count, options) => {
+            startBlitz('count', { count, ...options });
+        });
+    program.parse();
+} catch(err) {
+    logError(err.message);
+    process.exit();
 }
-const boxWidth = 80;
-
-interface charArr {
-    chr: string,
-    code: string
-}
-
-interface statObj {
-    time: number,
-    gwpm: number,
-    nwpm: number,
-    accuracy: number,
-}
-
-program.name('blitz');
-program.command('time')
-    .description('Time limited blitz')
-    // .addOption(new Option('-t, --time <num>', 'time in seconds for time mode').default('30', '30 seconds'))
-    .addArgument(new Argument('[time]', 'time in seconds').default(30, '30 seconds'))
-    .action((options) => {
-        startBlitz('time', options);
-    });
-program.command('count')
-    .description('Word limited blitz')
-    // .addOption(new Option('-c, --count <num>', 'word limit for word mode').default('20', '20 Words'))
-    .addArgument(new Argument('[count]', 'number of words').default(20, '20 words'))
-    .action((options) => {
-        startBlitz('count', options);
-    });
-program.parse();
 
 function startBlitz(mode, arg) {
     switch (mode) {
         case "time":
-            timeMode(arg);
+            timeMode(typeof arg === "object" && "time" in arg ? arg.time : arg, arg.words);
             break;
         case "count":
-            countMode(arg);
+            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, arg.words);
             break;
         default:
-            countMode(arg);
+            countMode(typeof arg === "object" && "count" in arg ? arg.count : arg, arg.words);
     }
 }
 
-async function timeMode(time: number) {
+async function timeMode(time: number, words: string = null) {
+    let header: string = "";
     let sampleWords: string[] = [];
     let wordCount: number = 30;
     let userInp: string[] = [];
     let startTime: number = null;
     let curWordIndex: number = 0;
     let backLimit: number = 0;
+    let customWords: string[] = [];
+    if(words !== null) {
+        customWords = loadWordsFromCsv(words);
+        if(customWords.length === 0) {
+            logError("No words found in the provided CSV file.");
+            process.exit();
+        }
+    }
 
     if (time > 120 || time < 10) {
         logError("Please enter valid time limit[10-120]");
         process.exit();
     }
 
-    for (let i: number = 0; i < wordCount; i++) {
-        sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
-    }
+    sampleWords = generateWords(customWords, wordCount);
     readline.emitKeypressEvents(process.stdin);
     if (process.stdin.isTTY) {
         process.stdin.setRawMode(true);
@@ -125,15 +129,19 @@ async function timeMode(time: number) {
             let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
 
             console.clear();
-            const d: string = await figlet('Cursor Blitz');
-            console.log(d);
-            logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. Timer updates as you type."]);
+            console.log(header);
+            logInBox(["You have " + (time - Math.round((new Date().getTime() - startTime)/1000)) + " seconds left. The timer updates as you type."]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
             if (userInp.length > sampleWords.length - 10) {
                 for (let i: number = 0; i < 10; i++) {
-                    sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
+                    if(customWords.length > 0) {
+                        const randIndex = Math.floor(Math.random() * customWords.length);
+                        sampleWords.push(customWords[randIndex]);
+                    } else {
+                        sampleWords.push(fetchWord());
+                    }
                 }
             }
         }
@@ -141,31 +149,44 @@ async function timeMode(time: number) {
 
     let resArr: charArr[][] = evaluateInp(sampleWords, [], 0);
     console.clear();
-    const d: string = await figlet('Cursor Blitz');
-    console.log(d);
+    header = await figlet('Cursor Blitz');
+    console.log(header);
     logInBox(["Timer starts when you start typing. You have " + time + " seconds."]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
 
-async function countMode(count: number = null) {
+async function countMode(count: number = null, words: string = null) {
+    let header: string = "";
     let sampleWords: string[] = [];
     let wordCount: number = (count ? count : 10);
     let userInp: string[] = [];
     let startTime: number = null;
     let curWordIndex: number = 0;
     let backLimit: number = 0;
+    let customWords: string[] = [];
+    if(words !== null) {
+        customWords = loadWordsFromCsv(words);
+        if(customWords.length === 0) {
+            logError("No words found in the provided CSV file.");
+            process.exit();
+        }
+    }
 
     if (wordCount > 100 || wordCount < 1) {
         logError("Please enter valid word count[1-100]");
         process.exit();
     }
     
-    for (let i: number = 0; i < wordCount; i++) {
-        sampleWords.push(enData[Math.floor(Math.random() * enData.length)]);
-    }
+    sampleWords = generateWords(customWords, wordCount);
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
+    if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+    } else {
+        logError("The input device is not a TTY");
+        process.exit();
+    }
     process.stdin.on('keypress', async (str: string, key: Key) => {
         if (startTime === null)
             startTime = new Date().getTime();
@@ -203,9 +224,8 @@ async function countMode(count: number = null) {
             let resArr: charArr[][] = evaluateInp(sampleWords, userInp, curWordIndex);
 
             console.clear();
-            const d: string = await figlet('Cursor Blitz');
-            console.log(d);
-            logInBox(["Type " + wordCount + " words to finish blitz.", "Last word has to be correct to complete the test."]);
+            console.log(header);
+            logInBox(["Type " + wordCount + " words to finish the blitz.", "The final word must be correct to complete the challenge"]);
             const formattedArr: string[] = formatCharArr(resArr);
             logInBox(formattedArr);
 
@@ -218,9 +238,9 @@ async function countMode(count: number = null) {
     });
     let resArr: charArr[][] = evaluateInp(sampleWords, [], 0);
     console.clear();
-    const d: string = await figlet('Cursor Blitz');
-    console.log(d);
-    logInBox(["Type " + wordCount + " words to finish blitz.", "Last word has to be correct to complete the test."]);
+    header = await figlet('Cursor Blitz');
+    console.log(header);
+    logInBox(["Type " + wordCount + " words to finish the blitz.", "The final word must be correct to complete the challenge"]);
     const formattedArr: string[] = formatCharArr(resArr);
     logInBox(formattedArr);
 }
@@ -349,44 +369,15 @@ function printEndScreen(stats: statObj) {
     logInBox(result);
 }
 
-function formatCharArr(textArr: charArr[][]) {
-    const lineLength = (boxWidth - 4);
-
-    let resString: string[] = [""];
-    let resIndex: number = 0;
-
-    let charCount = 0;
-    for (const t of textArr) {
-        if (charCount + t.length + 1 > lineLength) {
-            resIndex++;
-            resString[resIndex] = "";
-            charCount = 0;
-        }
-
-        if (resString[resIndex] !== "") {
-            resString[resIndex] += " ";
-            charCount++;
-        }
-        for (const k of t) {
-            resString[resIndex] += ansiMap[k.code] + k.chr + ansiMap['nil'];
-            charCount++;
+function generateWords(customWords: string[] = [], count: number = 10) {
+    let words: string[] = [];
+    for (let i: number = 0; i < count; i++) {
+        if(customWords.length > 0) {
+            const randIndex = Math.floor(Math.random() * customWords.length);
+            words.push(customWords[randIndex]);
+        } else {
+            words.push(fetchWord());
         }
     }
-
-    return resString;
-}
-
-function logInBox(a: string[]) {
-    const boxTop: string = "╭" + "─".repeat(boxWidth - 2) + "╮";
-    const boxBottom: string = "╰" + "─".repeat(boxWidth - 2) + "╯";
-
-    console.log(boxTop);
-    for (const r of a) {
-        console.log("│ " + r + " ".repeat(boxWidth - 4 - r.replace(ansiRegex, "").length) + " │");
-    }
-    console.log(boxBottom);
-}
-
-function logError(err: string) {
-    console.log(`\x1b[31mERROR: ${err}\x1b[0m`);
+    return words;
 }
